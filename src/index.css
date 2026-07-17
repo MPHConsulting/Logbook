@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Dense logbook grid cells (all centred). */
+.lb-cell {
+  @apply border border-slate-200 px-1.5 py-1 text-center tabular-nums whitespace-nowrap;
+}
+.lb-cell-l {
+  @apply border border-slate-200 px-2 py-1 text-center whitespace-nowrap;
+}
+.lb-head {
+  @apply border border-slate-300 bg-slate-100 px-1.5 py-1 text-center font-semibold text-[11px] uppercase tracking-tight;
+}
+
+/* Freeze the Date column so it stays visible while scrolling horizontally.
+   A right-edge shadow marks the frozen boundary (collapsed-border tables can
+   drop the divider of a sticky cell, so the shadow keeps it visible). */
+.lb-freeze {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  box-shadow: 2px 0 4px -2px rgba(15, 23, 42, 0.25);
+}
+.lb-freeze-head {
+  z-index: 6;
+}
+
+/* ---- Printing: one logbook page fits a single landscape A4 sheet ---- */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
+  html,
+  body,
+  #root {
+    height: auto;
+    background: #fff;
+  }
+
+  /* Chrome/Safari drop background colours by default; keep the shaded total
+     rows and blue instrument columns so the print matches the screen. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide chrome that shouldn't appear on paper (app bar, pager, buttons). */
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  /* Unfreeze the date column and drop scroll/shadow so the full width prints. */
+  .lb-print-wrap {
+    overflow: visible !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  .lb-freeze {
+    position: static !important;
+    box-shadow: none !important;
+  }
+
+  /* Shrink to fit A4 landscape width and avoid splitting a page across sheets. */
+  table.lb-table {
+    width: 100% !important;
+    font-size: 7pt !important;
+    page-break-inside: avoid;
+  }
+  table.lb-table .lb-cell,
+  table.lb-table .lb-cell-l {
+    padding: 1px 3px !important;
+  }
+  table.lb-table .lb-head {
+    padding: 1px 2px !important;
+    font-size: 6pt !important;
+  }
+  /* Let free-text columns wrap on paper instead of being clipped/truncated. */
+  table.lb-table .lb-details {
+    max-width: none !important;
+    white-space: normal !important;
+    overflow: visible !important;
+  }
+  tr {
+    page-break-inside: avoid;
+  }
+
+  /* Print-all: hide the single on-screen page and print each page on its own
+     landscape sheet. */
+  .lb-printing-all .lb-single {
+    display: none !important;
+  }
+  .lb-print-all {
+    display: block !important;
+  }
+  .lb-print-all .lb-print-page {
+    break-after: page;
+    page-break-after: always;
+  }
+  .lb-print-all .lb-print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+}
+
+/* All-pages container is print-only; never shown on screen. */
+.lb-print-all {
+  display: none;
+}

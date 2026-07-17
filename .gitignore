@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+
+# Environment / secrets (e.g. GitHub token for sync)
+.env
+.env.local
+.env.*.local
+
+# Python migration artifacts
+migration/__pycache__/
+*.pyc
+
+# Keep the large source workbook out of git (it lives in OneDrive)
+migration/*.xlsx
+
+# Generated migration intermediates (regenerated from the workbook; the app
+# only needs the compiled src/data/logbook-data.json which IS committed)
+migration/flights.json
+migration/enriched_flights.json
+migration/reconciliation_report.json
+migration/rego_review.csv
+
+# TypeScript build info
+*.tsbuildinfo
