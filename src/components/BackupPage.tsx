@@ -191,8 +191,9 @@ export function BackupPage({ onRestored }: { onRestored: () => void }) {
         </div>
         <p className="mt-1 text-sm text-slate-500">
           Saves a snapshot to a <span className="font-medium">private GitHub Gist</span> automatically
-          whenever you add or edit a flight (and when the app opens). The token is stored only in this
-          browser and is sent only to GitHub.
+          whenever you add, edit or delete a flight. The token is stored only in this browser and is
+          sent only to GitHub. On a new device, use <span className="font-medium">Restore from cloud</span>{" "}
+          first to pull your latest data.
         </p>
 
         {gist.connected ? (

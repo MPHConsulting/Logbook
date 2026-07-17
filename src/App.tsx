@@ -57,8 +57,6 @@ export default function App() {
       await ensureSeeded();
       await reload();
       setLoading(false);
-      // Snapshot to the cloud on open (no-op unless cloud backup is connected).
-      scheduleAutoBackup();
     })();
   }, []);
 
