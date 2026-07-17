@@ -22,7 +22,7 @@ import {
   paginate,
   totalFlyingHours,
 } from "./lib/totals";
-import { scheduleAutoBackup } from "./lib/gistBackup";
+import { scheduleAutoBackup, syncOnOpen } from "./lib/gistBackup";
 import type { Flight } from "./types";
 
 type View = "logbook" | "simulator" | "form" | "totals" | "cv" | "backup";
@@ -57,7 +57,30 @@ export default function App() {
       await ensureSeeded();
       await reload();
       setLoading(false);
+      // Pull the latest from the cloud on open (no-op unless cloud sync is on).
+      try {
+        const r = await syncOnOpen();
+        if (r.changed) await reload();
+      } catch (e) {
+        console.warn("Cloud sync on open failed:", e);
+      }
     })();
+  }, []);
+
+  // Re-sync whenever the app is brought back to the foreground, so switching
+  // between phone and computer picks up the other device's latest changes.
+  useEffect(() => {
+    const onVisible = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const r = await syncOnOpen();
+        if (r.changed) await reload();
+      } catch (e) {
+        console.warn("Cloud sync on focus failed:", e);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
   const pages = useMemo(() => {

@@ -2,10 +2,10 @@ import { useRef, useState } from "react";
 import { exportData, importData, type BackupBundle } from "../lib/db";
 import {
   backupToGist,
+  connect as gistConnect,
   disconnect,
   getGistStatus,
   restoreFromGist,
-  setToken,
   type GistStatus,
 } from "../lib/gistBackup";
 
@@ -31,13 +31,12 @@ export function BackupPage({ onRestored }: { onRestored: () => void }) {
     if (!token.trim()) return;
     setBusy(true);
     try {
-      setToken(token);
-      const status = await backupToGist();
+      const status = await gistConnect(token);
       setGist(status);
       setTokenInput("");
-      setMsg({ kind: "ok", text: "Cloud backup connected and first snapshot saved." });
+      setMsg({ kind: "ok", text: "Cloud sync connected — this device is now in sync." });
+      onRestored();
     } catch (e) {
-      disconnect();
       setGist(getGistStatus());
       setMsg({ kind: "err", text: `Could not connect: ${(e as Error).message}` });
     } finally {
@@ -180,7 +179,7 @@ export function BackupPage({ onRestored }: { onRestored: () => void }) {
 
       <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-slate-800">Automatic cloud backup</h3>
+          <h3 className="font-semibold text-slate-800">Automatic cloud sync</h3>
           <span
             className={`rounded-full px-2 py-0.5 text-xs font-medium ${
               gist.connected ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"
@@ -190,10 +189,11 @@ export function BackupPage({ onRestored }: { onRestored: () => void }) {
           </span>
         </div>
         <p className="mt-1 text-sm text-slate-500">
-          Saves a snapshot to a <span className="font-medium">private GitHub Gist</span> automatically
-          whenever you add, edit or delete a flight. The token is stored only in this browser and is
-          sent only to GitHub. On a new device, use <span className="font-medium">Restore from cloud</span>{" "}
-          first to pull your latest data.
+          Keeps every device in sync through a <span className="font-medium">private GitHub Gist</span>:
+          it pushes after every add/edit/delete and pulls the latest when the app opens. Connect the{" "}
+          <span className="font-medium">same token</span> on each device (phone and computer) and they
+          share one backup. The token is stored only in this browser and is sent only to GitHub. Best
+          used one device at a time (last save wins).
         </p>
 
         {gist.connected ? (

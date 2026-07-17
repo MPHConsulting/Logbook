@@ -93,6 +93,7 @@ export function AddFlightForm({ initial, onSave, onCancel, onDelete, isSim }: Pr
       needsReview: false,
       origin: initial?.origin ?? "app",
       createdAt: initial?.createdAt ?? Date.now(),
+      updatedAt: Date.now(),
       ...(isSim ? { countsToTotals } : { offshore, xCountry }),
     };
     onSave(flight);

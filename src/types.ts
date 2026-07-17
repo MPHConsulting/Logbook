@@ -40,6 +40,9 @@ export interface Flight {
   /** Creation timestamp (ms) for app-added flights, used to keep same-day
    * flights in the order they were entered. */
   createdAt?: number;
+  /** Last-modified timestamp (ms), bumped on every save. Used to pick the
+   * winning record when merging data from another device during cloud sync. */
+  updatedAt?: number;
   /** For simulator sessions: whether the hours roll up into the Totals / CV
    * "sim" line for that aircraft type. Defaults to true. When false the session
    * only lives on the simulator page and is excluded from the grand totals. */
