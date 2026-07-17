@@ -22,6 +22,7 @@ import {
   paginate,
   totalFlyingHours,
 } from "./lib/totals";
+import { scheduleAutoBackup } from "./lib/gistBackup";
 import type { Flight } from "./types";
 
 type View = "logbook" | "simulator" | "form" | "totals" | "cv" | "backup";
@@ -56,6 +57,8 @@ export default function App() {
       await ensureSeeded();
       await reload();
       setLoading(false);
+      // Snapshot to the cloud on open (no-op unless cloud backup is connected).
+      scheduleAutoBackup();
     })();
   }, []);
 
@@ -99,6 +102,7 @@ export default function App() {
     setEditing(null);
     setFocusMode(wasEdit ? "locate" : "latest");
     setFocusId(f.id);
+    scheduleAutoBackup();
   }
 
   async function handleDelete(id: string) {
@@ -107,6 +111,7 @@ export default function App() {
     await reload();
     setView(toSim ? "simulator" : "logbook");
     setEditing(null);
+    scheduleAutoBackup();
   }
 
   if (loading) {
