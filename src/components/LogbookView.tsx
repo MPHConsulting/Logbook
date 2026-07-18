@@ -4,12 +4,14 @@ import type { LogbookPage } from "../lib/totals";
 import type { Flight } from "../types";
 import { LogbookTable } from "./LogbookTable";
 
-/** "12 Mar 1980" from an ISO date, or "" if unset/unparseable. */
+/** "dd/mm/yyyy" from an ISO date, or "" if unset/unparseable. */
 function fmtDob(iso: string): string {
   if (!iso) return "";
   const d = new Date(iso + "T00:00:00");
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()}`;
 }
 
 /** Pilot identity line shown atop each logbook page (CASR 61.345(2)). */

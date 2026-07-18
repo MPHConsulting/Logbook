@@ -4,12 +4,7 @@ export function fmtHrs(v: number): string {
   return v.toFixed(1);
 }
 
-const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
-
-/** Short date like "08 Jan 09" from ISO, or a best-effort from y/m/d. */
+/** Date as "dd/mm/yyyy" from ISO, or a best-effort from y/m/d. */
 export function fmtDate(
   date: string | null,
   year?: number | null,
@@ -19,11 +14,13 @@ export function fmtDate(
   if (date) {
     const d = new Date(date + "T00:00:00");
     const dd = String(d.getDate()).padStart(2, "0");
-    return `${dd} ${MONTHS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return `${dd}/${mm}/${d.getFullYear()}`;
   }
   if (year && month) {
     const dd = day ? String(day).padStart(2, "0") : "--";
-    return `${dd} ${MONTHS[month - 1]} ${String(year).slice(2)}`;
+    const mm = String(month).padStart(2, "0");
+    return `${dd}/${mm}/${year}`;
   }
   return "";
 }
