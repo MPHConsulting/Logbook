@@ -157,6 +157,13 @@ export function LogbookView({
       <div className="no-print mt-4 flex items-center justify-center gap-3 text-sm">
         <button
           disabled={pageIdx === 0}
+          onClick={() => setPageIdx(0)}
+          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 font-medium disabled:opacity-40"
+        >
+          First
+        </button>
+        <button
+          disabled={pageIdx === 0}
           onClick={() => setPageIdx((i) => Math.max(0, i - 1))}
           className="rounded-md border border-slate-300 bg-white px-3 py-1.5 font-medium disabled:opacity-40"
         >
