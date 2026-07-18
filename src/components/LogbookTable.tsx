@@ -210,7 +210,11 @@ export function LogbookTable({
           <TotalRow label="Totals carried forward from last page" time={page.broughtForward} tone="fwd" />
           <TotalRow label="New totals (to date)" time={page.newTotal} tone="date" />
           {page.isYearEnd && (
-            <TotalRow label={`Totals for ${page.year ?? ""} (year)`} time={page.yearTotal} tone="year" />
+            <TotalRow
+              label={`Totals for ${page.year ?? ""} (year) — ${totalFlyingHours(page.yearTotal).toFixed(1)} hrs flown`}
+              time={page.yearTotal}
+              tone="year"
+            />
           )}
         </tbody>
       </table>
