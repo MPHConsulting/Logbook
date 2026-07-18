@@ -154,45 +154,55 @@ export function LogbookView({
         <LogbookTable page={page} highlightId={highlightId ?? null} onEdit={onEdit} />
       </div>
 
-      <div className="no-print mt-4 flex items-center justify-center gap-3 text-sm">
-        <button
-          disabled={pageIdx === 0}
-          onClick={() => setPageIdx(0)}
-          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 font-medium disabled:opacity-40"
-        >
-          First
-        </button>
-        <button
-          disabled={pageIdx === 0}
-          onClick={() => setPageIdx((i) => Math.max(0, i - 1))}
-          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 font-medium disabled:opacity-40"
-        >
-          ← Prev
-        </button>
+      <div className="no-print mt-4 flex flex-col items-center gap-2 text-sm">
         <span className="tabular-nums text-slate-600">
           Page {pageIdx + 1} of {pages.length}
         </span>
-        <button
-          disabled={pageIdx >= pages.length - 1}
-          onClick={() => setPageIdx((i) => Math.min(pages.length - 1, i + 1))}
-          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 font-medium disabled:opacity-40"
-        >
-          Next →
-        </button>
-        <button
-          onClick={() => setPageIdx(pages.length - 1)}
-          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 font-medium"
-        >
-          Latest
-        </button>
-
-        <div className="relative ml-2" ref={menuRef}>
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setMenuOpen((o) => !o)}
-            className="rounded-md border border-sky-300 bg-sky-50 px-3 py-1.5 font-medium text-sky-700 hover:bg-sky-100"
+            disabled={pageIdx === 0}
+            onClick={() => setPageIdx(0)}
+            aria-label="First page"
+            title="First page"
+            className="min-w-[2.75rem] rounded-md border border-slate-300 bg-white px-3 py-2 text-base font-semibold disabled:opacity-40"
           >
-            Print ▾
+            «
           </button>
+          <button
+            disabled={pageIdx === 0}
+            onClick={() => setPageIdx((i) => Math.max(0, i - 1))}
+            aria-label="Previous page"
+            title="Previous page"
+            className="min-w-[2.75rem] rounded-md border border-slate-300 bg-white px-3 py-2 text-base font-semibold disabled:opacity-40"
+          >
+            ←
+          </button>
+          <button
+            disabled={pageIdx >= pages.length - 1}
+            onClick={() => setPageIdx((i) => Math.min(pages.length - 1, i + 1))}
+            aria-label="Next page"
+            title="Next page"
+            className="min-w-[2.75rem] rounded-md border border-slate-300 bg-white px-3 py-2 text-base font-semibold disabled:opacity-40"
+          >
+            →
+          </button>
+          <button
+            disabled={pageIdx >= pages.length - 1}
+            onClick={() => setPageIdx(pages.length - 1)}
+            aria-label="Last page"
+            title="Last page"
+            className="min-w-[2.75rem] rounded-md border border-slate-300 bg-white px-3 py-2 text-base font-semibold disabled:opacity-40"
+          >
+            »
+          </button>
+
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen((o) => !o)}
+              className="rounded-md border border-sky-300 bg-sky-50 px-3 py-2 font-medium text-sky-700 hover:bg-sky-100"
+            >
+              Print ▾
+            </button>
           {menuOpen && (
             <div className="absolute bottom-full right-0 z-20 mb-1 w-44 overflow-hidden rounded-md border border-slate-300 bg-white shadow-lg">
               <button
@@ -215,6 +225,7 @@ export function LogbookView({
               </button>
             </div>
           )}
+          </div>
         </div>
       </div>
 
