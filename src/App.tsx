@@ -3,6 +3,7 @@ import { AddFlightForm } from "./components/AddFlightForm";
 import { BackupPage } from "./components/BackupPage";
 import { CvSummaryPage } from "./components/CvSummaryPage";
 import { LogbookView } from "./components/LogbookView";
+import { ProfilePage } from "./components/ProfilePage";
 import { TotalsPage } from "./components/TotalsPage";
 import { seedData } from "./data/seed";
 import {
@@ -12,9 +13,12 @@ import {
   getAllFlights,
   getAllSimFlights,
   getBalances,
+  getProfile,
   putFlight,
+  putProfile,
   putSimFlight,
   type Balances,
+  type Profile,
 } from "./lib/db";
 import {
   emptyTime,
@@ -25,13 +29,14 @@ import {
 import { scheduleAutoBackup, syncOnOpen } from "./lib/gistBackup";
 import type { Flight } from "./types";
 
-type View = "logbook" | "simulator" | "form" | "totals" | "cv" | "backup";
+type View = "logbook" | "simulator" | "form" | "totals" | "cv" | "backup" | "profile";
 type FormMode = "flight" | "sim";
 
 export default function App() {
   const [flights, setFlights] = useState<Flight[]>([]);
   const [simFlights, setSimFlights] = useState<Flight[]>([]);
   const [balances, setBalances] = useState<Balances | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("logbook");
   const [editing, setEditing] = useState<Flight | null>(null);
@@ -42,14 +47,22 @@ export default function App() {
   const [focusMode, setFocusMode] = useState<"latest" | "locate">("latest");
 
   async function reload() {
-    const [f, s, b] = await Promise.all([
+    const [f, s, b, p] = await Promise.all([
       getAllFlights(),
       getAllSimFlights(),
       getBalances(),
+      getProfile(),
     ]);
     setFlights(f);
     setSimFlights(s);
     setBalances(b);
+    setProfile(p);
+  }
+
+  async function handleSaveProfile(p: Profile) {
+    await putProfile(p);
+    setProfile(p);
+    scheduleAutoBackup();
   }
 
   useEffect(() => {
@@ -167,6 +180,7 @@ export default function App() {
               ["totals", "Totals"],
               ["cv", "CV Summary"],
               ["backup", "Backup"],
+              ["profile", "Profile"],
             ] as const).map(([v, label]) => (
               <button
                 key={v}
@@ -238,6 +252,8 @@ export default function App() {
           />
         ) : view === "backup" ? (
           <BackupPage onRestored={reload} />
+        ) : view === "profile" ? (
+          <ProfilePage initial={profile} onSave={handleSaveProfile} />
         ) : view === "simulator" ? (
           <>
             <div className="no-print mb-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">
@@ -248,6 +264,7 @@ export default function App() {
               groupByYear={false}
               highlightId={focusId}
               focusMode={focusMode}
+              pilot={profile}
               emptyLabel="No simulator sessions."
               onEdit={(f) => openForm("sim", f)}
             />
@@ -257,6 +274,7 @@ export default function App() {
             pages={pages}
             highlightId={focusId}
             focusMode={focusMode}
+            pilot={profile}
             onEdit={(f) => openForm("flight", f)}
           />
         )}

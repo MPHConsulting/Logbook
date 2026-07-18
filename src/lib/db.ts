@@ -54,6 +54,22 @@ export interface Balances {
   excelGrandTotal: FlightTime;
 }
 
+/** Pilot identity, required on the logbook by CASR 61.345(2). */
+export interface Profile {
+  fullName: string;
+  dob: string; // ISO YYYY-MM-DD
+}
+
+export async function getProfile(): Promise<Profile | null> {
+  const db = await getDb();
+  return ((await db.get("meta", "profile")) as Profile | undefined) ?? null;
+}
+
+export async function putProfile(p: Profile): Promise<void> {
+  const db = await getDb();
+  await db.put("meta", p, "profile");
+}
+
 export async function ensureSeeded(): Promise<void> {
   const db = await getDb();
   const seeded = await db.get("meta", "seedVersion");
@@ -215,13 +231,14 @@ export interface BackupBundle {
     excelGrandTotal?: FlightTime;
     sourceMeta?: unknown;
     seedVersion?: unknown;
+    profile?: Profile;
   };
 }
 
 /** Export the entire on-device database to a single JSON bundle. */
 export async function exportData(): Promise<BackupBundle> {
   const db = await getDb();
-  const [flights, sim, openingBalance, adjustments, excelGrandTotal, sourceMeta, seedVersion] =
+  const [flights, sim, openingBalance, adjustments, excelGrandTotal, sourceMeta, seedVersion, profile] =
     await Promise.all([
       db.getAll("flights"),
       db.getAll("sim"),
@@ -230,6 +247,7 @@ export async function exportData(): Promise<BackupBundle> {
       db.get("meta", "excelGrandTotal") as Promise<FlightTime>,
       db.get("meta", "sourceMeta"),
       db.get("meta", "seedVersion"),
+      db.get("meta", "profile") as Promise<Profile | undefined>,
     ]);
   return {
     app: "pilot-logbook",
@@ -237,7 +255,7 @@ export async function exportData(): Promise<BackupBundle> {
     exportedAt: new Date().toISOString(),
     flights,
     sim,
-    meta: { openingBalance, adjustments, excelGrandTotal, sourceMeta, seedVersion },
+    meta: { openingBalance, adjustments, excelGrandTotal, sourceMeta, seedVersion, profile },
   };
 }
 
@@ -262,5 +280,6 @@ export async function importData(bundle: BackupBundle): Promise<void> {
   if (bundle.meta?.excelGrandTotal) await meta.put(bundle.meta.excelGrandTotal, "excelGrandTotal");
   if (bundle.meta?.sourceMeta !== undefined) await meta.put(bundle.meta.sourceMeta, "sourceMeta");
   if (bundle.meta?.seedVersion !== undefined) await meta.put(bundle.meta.seedVersion, "seedVersion");
+  if (bundle.meta?.profile) await meta.put(bundle.meta.profile, "profile");
   await tx.done;
 }

@@ -1,7 +1,38 @@
 import { useEffect, useRef, useState } from "react";
+import type { Profile } from "../lib/db";
 import type { LogbookPage } from "../lib/totals";
 import type { Flight } from "../types";
 import { LogbookTable } from "./LogbookTable";
+
+/** "12 Mar 1980" from an ISO date, or "" if unset/unparseable. */
+function fmtDob(iso: string): string {
+  if (!iso) return "";
+  const d = new Date(iso + "T00:00:00");
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
+}
+
+/** Pilot identity line shown atop each logbook page (CASR 61.345(2)). */
+function PilotBar({ pilot }: { pilot?: Profile | null }) {
+  if (!pilot?.fullName && !pilot?.dob) return null;
+  const dob = fmtDob(pilot?.dob ?? "");
+  return (
+    <div className="mb-2 flex flex-wrap gap-x-6 gap-y-0.5 text-sm text-slate-600">
+      {pilot?.fullName && (
+        <span>
+          <span className="text-slate-400">Name: </span>
+          <span className="font-semibold text-slate-800">{pilot.fullName}</span>
+        </span>
+      )}
+      {dob && (
+        <span>
+          <span className="text-slate-400">DOB: </span>
+          <span className="font-semibold text-slate-800">{dob}</span>
+        </span>
+      )}
+    </div>
+  );
+}
 
 /** Header label for a page: a single year, or a "start – end" range when a
  * continuous (non year-broken) page spans more than one calendar year. */
@@ -26,6 +57,7 @@ export function LogbookView({
   onEdit,
   highlightId,
   focusMode = "latest",
+  pilot,
   emptyLabel = "No entries yet.",
   groupByYear = true,
 }: {
@@ -35,6 +67,8 @@ export function LogbookView({
   /** After a save: "latest" jumps to the last page (new flight), "locate" stays
    * on the page the highlighted (edited) flight lives on. */
   focusMode?: "latest" | "locate";
+  /** Pilot identity shown atop each page and on printouts (CASR 61.345(2)). */
+  pilot?: Profile | null;
   emptyLabel?: string;
   groupByYear?: boolean;
 }) {
@@ -106,6 +140,7 @@ export function LogbookView({
       {/* Current page (screen + "print this page"). Hidden on paper during a
           print-all so only the all-pages block prints. */}
       <div className="lb-single">
+        <PilotBar pilot={pilot} />
         <div className="mb-2 flex items-baseline gap-3">
           <h2 className="text-xl font-bold tabular-nums text-slate-800">{pageYearLabel(page)}</h2>
           {groupByYear && yearPages.length > 1 && (
@@ -179,6 +214,7 @@ export function LogbookView({
         <div className="lb-print-all">
           {pages.map((p, i) => (
             <div key={i} className="lb-print-page">
+              <PilotBar pilot={pilot} />
               <h2 className="mb-1 text-sm font-bold text-slate-800">{pageYearLabel(p)}</h2>
               <LogbookTable page={p} />
             </div>
