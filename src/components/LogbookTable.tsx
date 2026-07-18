@@ -206,8 +206,8 @@ export function LogbookTable({
           {Array.from({ length: padCount }).map((_, i) => (
             <EmptyRow key={`pad-${i}`} />
           ))}
-          <TotalRow label="Totals carried forward from last page" time={page.broughtForward} tone="fwd" />
           <TotalRow label="Totals this page" time={page.thisPage} tone="page" />
+          <TotalRow label="Totals carried forward from last page" time={page.broughtForward} tone="fwd" />
           <TotalRow label="New totals (to date)" time={page.newTotal} tone="date" />
           {page.isYearEnd && (
             <TotalRow label={`Totals for ${page.year ?? ""} (year)`} time={page.yearTotal} tone="year" />
