@@ -136,6 +136,14 @@ export default function App() {
     setView("form");
   }
 
+  // Close the add/edit picker (Cancel or Back) and trigger a backup so the
+  // cloud snapshot is refreshed every time the picker is dismissed.
+  function closeForm() {
+    setView(formMode === "sim" ? "simulator" : "logbook");
+    setEditing(null);
+    scheduleAutoBackup();
+  }
+
   async function handleSave(f: Flight) {
     const toSim = formMode === "sim";
     const wasEdit = editing != null;
@@ -218,8 +226,7 @@ export default function App() {
           <button
             onClick={() => {
               if (view === "form") {
-                setEditing(null);
-                setView(formMode === "sim" ? "simulator" : "logbook");
+                closeForm();
               } else if (view === "simulator") {
                 openForm("sim", null);
               } else {
@@ -253,10 +260,7 @@ export default function App() {
               initial={editing}
               isSim={formMode === "sim"}
               onSave={handleSave}
-              onCancel={() => {
-                setView(formMode === "sim" ? "simulator" : "logbook");
-                setEditing(null);
-              }}
+              onCancel={closeForm}
               onDelete={editing ? handleDelete : undefined}
             />
           </div>
