@@ -133,3 +133,27 @@ body {
 .lb-print-all {
   display: none;
 }
+
+/* Certification footer is only shown on printouts (CASR 61.365). */
+.lb-cert {
+  display: none;
+}
+@media print {
+  .lb-cert {
+    display: block;
+    margin-top: 10pt;
+    font-size: 8pt;
+    color: #000;
+    page-break-inside: avoid;
+  }
+  .lb-cert-stmt {
+    font-style: italic;
+    margin-bottom: 12pt;
+  }
+  .lb-cert-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16pt;
+    white-space: nowrap;
+  }
+}

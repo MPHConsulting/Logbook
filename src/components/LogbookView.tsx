@@ -14,6 +14,34 @@ function fmtDob(iso: string): string {
   return `${dd}/${mm}/${d.getFullYear()}`;
 }
 
+/** Certification block shown only on printouts (CASR 61.365(3)): a "true copy"
+ * statement plus signature/date and page numbering, on every printed page. */
+function CertFooter({
+  pilot,
+  pageNumber,
+  pageCount,
+}: {
+  pilot?: Profile | null;
+  pageNumber: number;
+  pageCount: number;
+}) {
+  return (
+    <div className="lb-cert">
+      <div className="lb-cert-stmt">
+        I certify this is a true and complete copy of my logbook records.
+      </div>
+      <div className="lb-cert-row">
+        <span>Name: {pilot?.fullName || "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}</span>
+        <span>Signature: ____________________</span>
+        <span>Date: ____________</span>
+        <span>
+          Page {pageNumber} of {pageCount}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 /** Pilot identity line shown atop each logbook page (CASR 61.345(2)). */
 function PilotBar({ pilot }: { pilot?: Profile | null }) {
   if (!pilot?.fullName && !pilot?.dob) return null;
@@ -152,6 +180,7 @@ export function LogbookView({
           )}
         </div>
         <LogbookTable page={page} highlightId={highlightId ?? null} onEdit={onEdit} />
+        <CertFooter pilot={pilot} pageNumber={pageIdx + 1} pageCount={pages.length} />
       </div>
 
       <div className="no-print mt-4 flex flex-col items-center gap-2 text-sm">
@@ -237,6 +266,7 @@ export function LogbookView({
               <PilotBar pilot={pilot} />
               <h2 className="mb-1 text-sm font-bold text-slate-800">{pageYearLabel(p)}</h2>
               <LogbookTable page={p} />
+              <CertFooter pilot={pilot} pageNumber={i + 1} pageCount={pages.length} />
             </div>
           ))}
         </div>
