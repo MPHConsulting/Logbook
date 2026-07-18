@@ -117,21 +117,52 @@ function isImported(f: Flight): boolean {
  */
 export function orderFlights(all: Flight[]): Flight[] {
   const imported = all.filter(isImported).sort((a, b) => a.sourceRow! - b.sourceRow!);
-  const apps = all.filter((f) => !isImported(f));
 
-  // Timeline of imported rows that carry a date (their source rows increase
-  // with date), used to find where an app flight's date belongs.
-  const timeline = imported
-    .filter((f) => f.date)
+  // "Anchor" timeline: imported rows that carry a date and were NOT edited in
+  // the app. Seed rows never have an updatedAt stamp, so these define the
+  // canonical chronological sequence (including any deliberate end-of-year
+  // placements carried over from the source Excel).
+  const anchors = imported
+    .filter((f) => f.date && !f.updatedAt)
     .map((f) => ({ row: f.sourceRow as number, t: dateMs(f.date) }));
+
+  // An imported flight the user edited in-app is "misplaced" when its (new)
+  // date falls outside the date range of its anchor neighbours — e.g. an old
+  // 2012 placeholder row re-dated to 2026. These are re-slotted by date rather
+  // than staying pinned to their original source row, so an edited entry lands
+  // in the right year instead of nesting among unrelated flights.
+  const misplaced = new Set<string>();
+  for (const f of imported) {
+    if (!f.updatedAt || !f.date) continue;
+    const t = dateMs(f.date);
+    const row = f.sourceRow as number;
+    let prev = -Infinity;
+    let next = Infinity;
+    for (const a of anchors) {
+      if (a.row < row) prev = a.t;
+      else if (a.row > row) {
+        next = a.t;
+        break;
+      }
+    }
+    if (t < prev || t > next) misplaced.add(f.id);
+  }
+
+  // App-added flights plus any re-dated imported rows all get slotted by date.
+  const apps = all.filter((f) => !isImported(f) || misplaced.has(f.id));
+
+  // Timeline used to place those flights: the stable anchor rows.
+  const timeline = anchors;
   const lastRow = imported.length ? imported[imported.length - 1].sourceRow! : 0;
 
   function baseRowFor(t: number): number {
-    if (Number.isNaN(t)) return lastRow + 1; // undated app flights sort last
+    if (Number.isNaN(t)) return lastRow + 1; // undated flights sort last
+    // Slot after the latest anchor whose date is on/before t. Scan the whole
+    // timeline (no early break) so deliberate date inversions in the source
+    // can't cause a misplacement.
     let base = timeline.length ? timeline[0].row - 1 : 0; // before the first flight
     for (const e of timeline) {
-      if (e.t <= t) base = e.row;
-      else break;
+      if (e.t <= t && e.row > base) base = e.row;
     }
     return base;
   }
@@ -170,7 +201,9 @@ export function orderFlights(all: Flight[]): Flight[] {
   }
 
   const keyOf = (f: Flight) =>
-    isImported(f) ? f.sourceRow! : (keyed.get(f.id) ?? Number.MAX_SAFE_INTEGER);
+    isImported(f) && !misplaced.has(f.id)
+      ? f.sourceRow!
+      : (keyed.get(f.id) ?? Number.MAX_SAFE_INTEGER);
   return [...all].sort((a, b) => keyOf(a) - keyOf(b));
 }
 

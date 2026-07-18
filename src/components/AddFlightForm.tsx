@@ -32,8 +32,81 @@ function newId(): string {
   return `app-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+/** Days between an ISO date and today (positive when the date is in the past). */
+function ageInDays(iso: string): number {
+  const ms = Date.parse(iso + "T00:00:00");
+  if (Number.isNaN(ms)) return 0;
+  return (Date.now() - ms) / 86_400_000;
+}
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/** Best-effort ISO date for a flight: the stored ISO date, else built from
+ * year/month/day when all three are present (imported rows often store only
+ * those). */
+function effectiveIso(f?: Flight | null): string | null {
+  if (!f) return null;
+  if (f.date) return f.date;
+  if (f.year && f.month && f.day) return `${f.year}-${pad2(f.month)}-${pad2(f.day)}`;
+  return null;
+}
+
+/** An existing entry more than 7 days old has its date locked. Works from the
+ * ISO date or, when only year/month are known, the 1st of that month. */
+function isOldEntry(f?: Flight | null): boolean {
+  if (!f) return false;
+  const iso = effectiveIso(f);
+  if (iso) return ageInDays(iso) > 7;
+  if (f.year && f.month) return ageInDays(`${f.year}-${pad2(f.month)}-01`) > 7;
+  return false;
+}
+
+/** ISO (yyyy-mm-dd) → display "dd/mm/yyyy". */
+function isoToDmy(iso: string): string {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
+}
+
+/** How the date should read in the field, always dd/mm/yyyy (with "--" for a
+ * missing day on partially-dated imported rows). */
+function displayDmy(f?: Flight | null): string {
+  const iso = effectiveIso(f);
+  if (iso) return isoToDmy(iso);
+  if (f?.year && f?.month) return `${f.day ? pad2(f.day) : "--"}/${pad2(f.month)}/${f.year}`;
+  return "";
+}
+
+/** Parse "dd/mm/yyyy" into a valid ISO date, or null if incomplete/invalid. */
+function dmyToIso(s: string): string | null {
+  const m = s.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const dd = +m[1];
+  const mm = +m[2];
+  const yyyy = +m[3];
+  const iso = `${yyyy}-${pad2(mm)}-${pad2(dd)}`;
+  const dt = new Date(iso + "T00:00:00");
+  // Reject impossible dates like 31/02/2026.
+  if (Number.isNaN(dt.getTime()) || dt.getDate() !== dd || dt.getMonth() + 1 !== mm) return null;
+  return iso;
+}
+
+/** Type-as-you-go dd/mm/yyyy mask: keep digits, auto-insert the slashes. */
+function maskDmy(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 8);
+  if (d.length > 4) return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+  if (d.length > 2) return `${d.slice(0, 2)}/${d.slice(2)}`;
+  return d;
+}
+
 export function AddFlightForm({ initial, onSave, onCancel, onDelete, isSim }: Props) {
-  const [date, setDate] = useState(initial?.date ?? new Date().toISOString().slice(0, 10));
+  // Once a flight is more than 7 days old its date is locked, so an old entry
+  // can't accidentally be re-dated (which would shift it out of chronological
+  // order). New flights and recent (<=7 day) entries remain editable.
+  const dateLocked = isOldEntry(initial);
+  // Date is entered/shown as dd/mm/yyyy regardless of the device locale.
+  const [dateInput, setDateInput] = useState(
+    dateLocked ? displayDmy(initial) : isoToDmy(effectiveIso(initial) ?? new Date().toISOString().slice(0, 10)),
+  );
   const [aircraftType, setType] = useState(initial?.aircraftType ?? "AW139");
   const [aircraftRego, setRego] = useState(initial?.aircraftRego ?? "");
   const [pilotInCommand, setPic] = useState(initial?.pilotInCommand ?? "SELF");
@@ -74,14 +147,34 @@ export function AddFlightForm({ initial, onSave, onCancel, onDelete, isSim }: Pr
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    const [y, m, d] = date ? date.split("-").map(Number) : [null, null, null];
+    let iso: string | null;
+    let y: number | null;
+    let m: number | null;
+    let d: number | null;
+    if (dateLocked) {
+      // A locked (old) entry keeps its original date fields untouched.
+      iso = initial?.date ?? null;
+      y = initial?.year ?? null;
+      m = initial?.month ?? null;
+      d = initial?.day ?? null;
+    } else if (!dateInput.trim()) {
+      iso = null;
+      y = m = d = null;
+    } else {
+      iso = dmyToIso(dateInput);
+      if (!iso) {
+        alert("Please enter the date as dd/mm/yyyy.");
+        return;
+      }
+      [y, m, d] = iso.split("-").map(Number);
+    }
     const flight: Flight = {
       id: initial?.id ?? newId(),
       sourceRow: initial?.sourceRow ?? null,
-      date: date || null,
-      year: y ?? null,
-      month: m ?? null,
-      day: d ?? null,
+      date: iso,
+      year: y,
+      month: m,
+      day: d,
       aircraftType: aircraftType.trim(),
       aircraftRego: aircraftRego.trim().toUpperCase(),
       pilotInCommand: pilotInCommand.trim(),
@@ -107,7 +200,22 @@ export function AddFlightForm({ initial, onSave, onCancel, onDelete, isSim }: Pr
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className={label}>Date</label>
-          <input type="date" className={field} value={date ?? ""} onChange={(e) => setDate(e.target.value)} />
+          <input
+            type="text"
+            inputMode="numeric"
+            className={`${field} ${dateLocked ? "cursor-not-allowed bg-slate-100 text-slate-500" : ""}`}
+            value={dateInput}
+            onChange={(e) => setDateInput(maskDmy(e.target.value))}
+            disabled={dateLocked}
+            placeholder="dd/mm/yyyy"
+            autoComplete="off"
+            enterKeyHint="next"
+          />
+          {dateLocked && (
+            <p className="mt-1 text-xs text-slate-500">
+              Date locked — this entry is more than 7 days old and can’t be re-dated.
+            </p>
+          )}
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
