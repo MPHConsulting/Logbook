@@ -4,6 +4,14 @@ import type { LogbookPage } from "../lib/totals";
 import type { Flight } from "../types";
 import { LogbookTable } from "./LogbookTable";
 
+/** Today's date as "dd/mm/yyyy" (used as the print date on the certification). */
+function printDate(): string {
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
 /** "dd/mm/yyyy" from an ISO date, or "" if unset/unparseable. */
 function fmtDob(iso: string): string {
   if (!iso) return "";
@@ -33,7 +41,7 @@ function CertFooter({
       <div className="lb-cert-row">
         <span>Name: {pilot?.fullName || "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}</span>
         <span>Signature: ____________________</span>
-        <span>Date: ____________</span>
+        <span>Date printed: {printDate()}</span>
         <span>
           Page {pageNumber} of {pageCount}
         </span>
