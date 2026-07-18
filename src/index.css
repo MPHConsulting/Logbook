@@ -142,9 +142,11 @@ body {
   .lb-cert {
     display: block;
     margin-top: 10pt;
+    padding-left: 10mm;
     font-size: 8pt;
     color: #000;
     page-break-inside: avoid;
+    text-align: left;
   }
   .lb-cert-stmt {
     font-style: italic;
@@ -152,8 +154,9 @@ body {
   }
   .lb-cert-row {
     display: flex;
-    justify-content: space-between;
-    gap: 16pt;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 6pt 24pt;
     white-space: nowrap;
   }
 }
