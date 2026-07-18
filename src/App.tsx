@@ -32,6 +32,15 @@ import type { Flight } from "./types";
 type View = "logbook" | "simulator" | "form" | "totals" | "cv" | "backup" | "profile";
 type FormMode = "flight" | "sim";
 
+const TABS = [
+  ["logbook", "Logbook"],
+  ["simulator", "Simulator"],
+  ["totals", "Totals"],
+  ["cv", "CV Summary"],
+  ["backup", "Backup"],
+  ["profile", "Profile"],
+] as const;
+
 export default function App() {
   const [flights, setFlights] = useState<Flight[]>([]);
   const [simFlights, setSimFlights] = useState<Flight[]>([]);
@@ -173,29 +182,39 @@ export default function App() {
               </span>
             </div>
           )}
-          <nav className="ml-auto flex items-center gap-1 rounded-md bg-slate-800 p-1 text-sm">
-            {([
-              ["logbook", "Logbook"],
-              ["simulator", "Simulator"],
-              ["totals", "Totals"],
-              ["cv", "CV Summary"],
-              ["backup", "Backup"],
-              ["profile", "Profile"],
-            ] as const).map(([v, label]) => (
-              <button
-                key={v}
-                onClick={() => {
-                  setEditing(null);
-                  setView(v);
-                }}
-                className={`rounded px-3 py-1 font-medium ${
-                  view === v ? "bg-sky-600 text-white" : "text-slate-300 hover:text-white"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
+          <div className="ml-auto">
+            {/* Phone: compact dropdown. Larger screens: full tab bar. */}
+            <select
+              className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-medium text-white sm:hidden"
+              value={TABS.some(([v]) => v === view) ? view : "logbook"}
+              onChange={(e) => {
+                setEditing(null);
+                setView(e.target.value as View);
+              }}
+            >
+              {TABS.map(([v, label]) => (
+                <option key={v} value={v}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <nav className="hidden items-center gap-1 rounded-md bg-slate-800 p-1 text-sm sm:flex">
+              {TABS.map(([v, label]) => (
+                <button
+                  key={v}
+                  onClick={() => {
+                    setEditing(null);
+                    setView(v);
+                  }}
+                  className={`rounded px-3 py-1 font-medium ${
+                    view === v ? "bg-sky-600 text-white" : "text-slate-300 hover:text-white"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </div>
           <button
             onClick={() => {
               if (view === "form") {
