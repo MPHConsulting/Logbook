@@ -166,8 +166,11 @@ export function LogbookTable({
   const padCount = Math.max(0, ROWS_PER_PAGE - page.flights.length);
 
   return (
-    <div className="lb-print-wrap rounded-lg border border-slate-300 bg-white shadow-sm">
-      <table className="lb-table w-full table-fixed border-collapse text-[12px] leading-tight">
+    <div className="lb-print-wrap overflow-x-auto rounded-lg border border-slate-300 bg-white shadow-sm">
+      {/* Fixed-layout, full-width table. min-w keeps columns legible: on a wide
+          screen it fills the page (no scroll); on a phone the table holds its
+          minimum width and the wrapper scrolls instead of shrinking to nothing. */}
+      <table className="lb-table w-full min-w-[1180px] table-fixed border-collapse text-[12px] leading-tight">
         <colgroup>
           {LEFT_COL_PCT.map((w, i) => (
             <col key={i} style={{ width: `${w}%` }} />

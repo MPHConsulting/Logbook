@@ -97,9 +97,11 @@ body {
     box-shadow: none !important;
   }
 
-  /* Shrink to fit A4 landscape width and avoid splitting a page across sheets. */
+  /* Shrink to fit A4 landscape width and avoid splitting a page across sheets.
+     Drop the on-screen min-width so it never overflows the sheet. */
   table.lb-table {
     width: 100% !important;
+    min-width: 0 !important;
     font-size: 7pt !important;
     page-break-inside: avoid;
   }
