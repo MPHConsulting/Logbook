@@ -10,13 +10,17 @@ import {
   deleteFlight,
   deleteSimFlight,
   ensureSeeded,
+  getAircraftCategories,
   getAllFlights,
   getAllSimFlights,
   getBalances,
   getProfile,
+  putAircraftCategories,
   putFlight,
   putProfile,
   putSimFlight,
+  type AircraftCategories,
+  type AircraftCategory,
   type Balances,
   type Profile,
 } from "./lib/db";
@@ -46,6 +50,7 @@ export default function App() {
   const [simFlights, setSimFlights] = useState<Flight[]>([]);
   const [balances, setBalances] = useState<Balances | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [categories, setCategories] = useState<AircraftCategories>({});
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("logbook");
   const [editing, setEditing] = useState<Flight | null>(null);
@@ -56,16 +61,18 @@ export default function App() {
   const [focusMode, setFocusMode] = useState<"latest" | "locate">("latest");
 
   async function reload() {
-    const [f, s, b, p] = await Promise.all([
+    const [f, s, b, p, c] = await Promise.all([
       getAllFlights(),
       getAllSimFlights(),
       getBalances(),
       getProfile(),
+      getAircraftCategories(),
     ]);
     setFlights(f);
     setSimFlights(s);
     setBalances(b);
     setProfile(p);
+    setCategories(c);
   }
 
   async function handleSaveProfile(p: Profile) {
@@ -144,9 +151,12 @@ export default function App() {
     scheduleAutoBackup();
   }
 
-  async function handleSave(f: Flight) {
+  async function handleSave(f: Flight, newCategory?: { type: string; category: AircraftCategory }) {
     const toSim = formMode === "sim";
     const wasEdit = editing != null;
+    if (newCategory && !categories[newCategory.type]) {
+      await putAircraftCategories({ ...categories, [newCategory.type]: newCategory.category });
+    }
     await (toSim ? putSimFlight(f) : putFlight(f));
     await reload();
     setView(toSim ? "simulator" : "logbook");
@@ -259,6 +269,7 @@ export default function App() {
             <AddFlightForm
               initial={editing}
               isSim={formMode === "sim"}
+              categories={categories}
               onSave={handleSave}
               onCancel={closeForm}
               onDelete={editing ? handleDelete : undefined}
@@ -272,6 +283,7 @@ export default function App() {
             totalsBase={seedData.totalsSheet}
             flights={flights}
             simFlights={simFlights}
+            categories={categories}
           />
         ) : view === "backup" ? (
           <BackupPage onRestored={reload} />

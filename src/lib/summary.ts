@@ -1,5 +1,31 @@
+import type { AircraftCategories, AircraftCategory } from "./db";
 import type { CvRow, CvSummary, Flight, FlightTime, TotalsSheet } from "../types";
 import { r1 } from "./totals";
+
+/** Built-in helicopter/fixed-wing classification for the types already in the
+ * logbook. Unknown types fall back to whatever the pilot chose when logging
+ * them (stored per-type in the DB) or, failing that, helicopter. */
+const BUILTIN_CATEGORIES: Record<string, AircraftCategory> = {
+  AW139: "helicopter",
+  S92: "helicopter",
+  S70: "helicopter",
+  B206: "helicopter",
+  R22: "helicopter",
+  CT4: "fixedwing",
+  DA40: "fixedwing",
+};
+
+/** Resolve a base type's category from (1) the pilot's saved choices, then
+ * (2) the built-in table, defaulting to helicopter. */
+export function categoryFor(baseType: string, categories: AircraftCategories = {}): AircraftCategory {
+  return categories[baseType] ?? BUILTIN_CATEGORIES[baseType] ?? "helicopter";
+}
+
+/** True when a freshly-entered type has no known category yet, so the form
+ * should ask whether it's a helicopter or fixed-wing. */
+export function isKnownType(baseType: string, categories: AircraftCategories = {}): boolean {
+  return baseType in BUILTIN_CATEGORIES || baseType in categories;
+}
 
 /**
  * Collapse an aircraft-type label (from either the app or an Excel summary
@@ -138,7 +164,7 @@ export function computeTotalsSheet(
  * fold onto the aircraft itself (there is no separate sim row in the CV), so
  * "AW139 SIM" -> "AW139", "S92 SIM" -> "S92", "S70 FF&MS" -> "S70".
  */
-function cvBaseType(label: string): string {
+export function cvBaseType(label: string): string {
   return canonType(label).replace(/SIM$/, "").replace(/FFMS$/, "");
 }
 
@@ -154,6 +180,7 @@ export function computeCvSummary(
   totalsBase: TotalsSheet,
   flights: Flight[],
   simFlights: Flight[] = [],
+  categories: AircraftCategories = {},
 ): CvSummary {
   const totals = computeTotalsSheet(totalsBase, flights, simFlights);
 
@@ -193,7 +220,6 @@ export function computeCvSummary(
     instByType.set(bt, a);
   }
 
-  const HELI = new Set(["AW139", "S92", "S70", "B206", "R22"]);
   const emptyFly: Fly = { captainIcus: 0, otherCoPilot: 0, dual: 0, night: 0, total: 0 };
   const groups = base.groups.map((g) => ({ name: g.name, rows: [] as CvRow[], totals: { ...g.totals } }));
   const seen = new Set<string>();
@@ -207,11 +233,12 @@ export function computeCvSummary(
       groups[gi].rows.push({ type: r.type, ...fly, ...inst });
     }
   });
-  // Aircraft types added in the app that aren't on the CV snapshot yet.
+  // Aircraft types added in the app that aren't on the CV snapshot yet. Group
+  // 0 is Helicopter, group 1 Fixed Wing; use the pilot's saved classification.
   for (const [bt, fly] of flyByType) {
     if (seen.has(bt)) continue;
     const inst = instByType.get(bt) ?? { instrument: 0, nvg: 0 };
-    const gi = HELI.has(bt) ? 0 : Math.min(1, groups.length - 1);
+    const gi = categoryFor(bt, categories) === "fixedwing" ? Math.min(1, groups.length - 1) : 0;
     groups[gi].rows.push({ type: bt, ...fly, ...inst });
     seen.add(bt);
   }

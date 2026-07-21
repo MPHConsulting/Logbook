@@ -8,6 +8,13 @@ interface Segment {
   span: number;
 }
 
+// The table is fixed-layout and always exactly as wide as the page (never
+// scrolls). These percentages size the left-hand columns and each time column;
+// the Details column has no width so it absorbs whatever space is left over
+// (and truncates when there isn't enough — open the picker to read it in full).
+const LEFT_COL_PCT = [7, 4.8, 3.5, 6, 6]; // Date, Type, Rego, PIC, Other Crew
+const TIME_COL_PCT = 3.1; // equal width for each of the 17 time columns
+
 // Group columns (SINGLE-ENGINE / MULTI-ENGINE / INSTRUMENT).
 const groupSegs: Segment[] = (() => {
   const segs: Segment[] = [];
@@ -78,14 +85,18 @@ function FlightRow({
       } hover:bg-sky-100/60 cursor-pointer`}
       onClick={() => onEdit?.(f)}
     >
-      <td className="lb-cell-l lb-freeze bg-inherit">{fmtDate(f.date, f.year, f.month, f.day)}</td>
-      <td className="lb-cell-l">{f.aircraftType}</td>
-      <td className="lb-cell-l">{f.aircraftRego}</td>
-      <td className="lb-cell-l max-w-[6rem] truncate" title={f.pilotInCommand}>
+      <td className="lb-cell-l lb-freeze truncate bg-inherit">
+        {fmtDate(f.date, f.year, f.month, f.day)}
+      </td>
+      <td className="lb-cell-l truncate">{f.aircraftType}</td>
+      <td className="lb-cell-l truncate">{f.aircraftRego}</td>
+      <td className="lb-cell-l truncate" title={f.pilotInCommand}>
         {f.pilotInCommand}
       </td>
-      <td className="lb-cell-l">{f.otherCrew}</td>
-      <td className="lb-cell-l lb-details max-w-[22rem] truncate" title={`${f.route} ${f.remarks}`}>
+      <td className="lb-cell-l truncate" title={f.otherCrew}>
+        {f.otherCrew}
+      </td>
+      <td className="lb-cell-l lb-details truncate" title={`${f.route} ${f.remarks}`}>
         <span className="font-medium">{f.route}</span>
         {f.remarks && <span className="text-slate-500"> — {f.remarks}</span>}
       </td>
@@ -126,7 +137,7 @@ function TotalRow({
   return (
     <tr className={`${bg} font-semibold`}>
       <td className={`lb-cell-l lb-freeze ${bg}`}>&nbsp;</td>
-      <td className={`lb-cell-l ${bg}`} colSpan={5}>
+      <td className={`lb-cell-l whitespace-normal ${bg}`} colSpan={5}>
         {label}
       </td>
       <TimeCells time={time} bold dark={dark} />
@@ -138,9 +149,8 @@ const LEFT_HEADERS: { label: string; className?: string }[] = [
   { label: "Date" },
   { label: "Type" },
   { label: "Rego" },
-  // Fixed, always-wrapping column so a long PIC name can't widen the table.
-  { label: "Pilot in Command", className: "w-24 min-w-[6rem] max-w-[6rem] whitespace-normal" },
-  { label: "Other Crew" },
+  { label: "Pilot in Command", className: "whitespace-normal" },
+  { label: "Other Crew", className: "whitespace-normal" },
   { label: "Details" },
 ];
 
@@ -156,8 +166,18 @@ export function LogbookTable({
   const padCount = Math.max(0, ROWS_PER_PAGE - page.flights.length);
 
   return (
-    <div className="lb-print-wrap overflow-x-auto rounded-lg border border-slate-300 bg-white shadow-sm">
-      <table className="lb-table border-collapse text-[12px] leading-tight">
+    <div className="lb-print-wrap rounded-lg border border-slate-300 bg-white shadow-sm">
+      <table className="lb-table w-full table-fixed border-collapse text-[12px] leading-tight">
+        <colgroup>
+          {LEFT_COL_PCT.map((w, i) => (
+            <col key={i} style={{ width: `${w}%` }} />
+          ))}
+          {/* Details — no width, so it takes the remaining space. */}
+          <col />
+          {TIME_COLUMNS.map((c) => (
+            <col key={c.key} style={{ width: `${TIME_COL_PCT}%` }} />
+          ))}
+        </colgroup>
         <thead>
           <tr>
             {LEFT_HEADERS.map((h, i) => (
@@ -194,7 +214,7 @@ export function LogbookTable({
           <tr>
             {TIME_COLUMNS.filter((c) => c.group !== "NVG").map((c) => (
               <th key={c.key} className="lb-head font-medium normal-case">
-                {c.period}
+                {c.period === "Night" ? "NGT" : c.period}
               </th>
             ))}
           </tr>

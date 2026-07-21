@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { TIME_COLUMNS, type TimeColumn } from "../lib/columns";
 import { emptyTime } from "../lib/totals";
+import { cvBaseType, isKnownType } from "../lib/summary";
+import type { AircraftCategories, AircraftCategory } from "../lib/db";
 import type { Flight, FlightTime, TimeKey } from "../types";
 
 const SE_COLS = TIME_COLUMNS.filter((c) => c.group === "SINGLE-ENGINE");
@@ -18,11 +20,14 @@ function fieldLabel(c: TimeColumn): string {
 
 interface Props {
   initial?: Flight | null;
-  onSave: (f: Flight) => void;
+  onSave: (f: Flight, newCategory?: { type: string; category: AircraftCategory }) => void;
   onCancel: () => void;
   onDelete?: (id: string) => void;
   /** True when the form is adding/editing a simulator session. */
   isSim?: boolean;
+  /** Saved helicopter/fixed-wing classifications, used to decide whether a
+   * newly-typed aircraft needs to be classified. */
+  categories?: AircraftCategories;
 }
 
 function newId(): string {
@@ -98,7 +103,7 @@ function maskDmy(raw: string): string {
   return d;
 }
 
-export function AddFlightForm({ initial, onSave, onCancel, onDelete, isSim }: Props) {
+export function AddFlightForm({ initial, onSave, onCancel, onDelete, isSim, categories = {} }: Props) {
   // Once a flight is more than 7 days old its date is locked, so an old entry
   // can't accidentally be re-dated (which would shift it out of chronological
   // order). New flights and recent (<=7 day) entries remain editable.
@@ -117,6 +122,12 @@ export function AddFlightForm({ initial, onSave, onCancel, onDelete, isSim }: Pr
   const [countsToTotals, setCountsToTotals] = useState(initial?.countsToTotals ?? true);
   const [offshore, setOffshore] = useState(initial?.offshore ?? false);
   const [xCountry, setXCountry] = useState(initial?.xCountry ?? false);
+  const [newCategory, setNewCategory] = useState<AircraftCategory>("helicopter");
+
+  // A type the pilot hasn't classified yet (and isn't built-in) needs a
+  // helicopter/fixed-wing choice so the CV Summary files it in the right group.
+  const baseType = cvBaseType(aircraftType);
+  const needsCategory = aircraftType.trim().length >= 2 && !isKnownType(baseType, categories);
 
   function setTimeField(key: TimeKey, value: string) {
     const v = value === "" ? 0 : parseFloat(value);
@@ -175,13 +186,17 @@ export function AddFlightForm({ initial, onSave, onCancel, onDelete, isSim }: Pr
       year: y,
       month: m,
       day: d,
-      aircraftType: aircraftType.trim(),
+      aircraftType: aircraftType.trim().toUpperCase(),
       aircraftRego: aircraftRego.trim().toUpperCase(),
-      pilotInCommand: pilotInCommand.trim(),
-      otherCrew: otherCrew.trim(),
-      route: route.trim(),
+      pilotInCommand: pilotInCommand.trim().toUpperCase(),
+      otherCrew: otherCrew.trim().toUpperCase(),
+      route: route.trim().toUpperCase(),
       remarks: remarks.trim(),
-      noteRaw: initial?.noteRaw ?? [pilotInCommand, route, remarks].filter(Boolean).join("\n"),
+      noteRaw:
+        initial?.noteRaw ??
+        [pilotInCommand.trim().toUpperCase(), route.trim().toUpperCase(), remarks.trim()]
+          .filter(Boolean)
+          .join("\n"),
       time,
       needsReview: false,
       origin: initial?.origin ?? "app",
@@ -189,7 +204,7 @@ export function AddFlightForm({ initial, onSave, onCancel, onDelete, isSim }: Pr
       updatedAt: Date.now(),
       ...(isSim ? { countsToTotals } : { offshore, xCountry }),
     };
-    onSave(flight);
+    onSave(flight, needsCategory ? { type: baseType, category: newCategory } : undefined);
   }
 
   const field = "w-full rounded-md border border-slate-300 px-3 py-2.5 text-base focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
@@ -247,10 +262,42 @@ export function AddFlightForm({ initial, onSave, onCancel, onDelete, isSim }: Pr
             />
           </div>
         </div>
+        {needsCategory && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 sm:col-span-2">
+            <p className="text-sm font-medium text-amber-800">
+              New aircraft type “{aircraftType.trim().toUpperCase()}” — is it a helicopter or fixed
+              wing?
+            </p>
+            <p className="mb-2 mt-0.5 text-xs text-amber-700">
+              This decides which group it appears under on the CV Summary.
+            </p>
+            <div className="flex gap-3">
+              {(["helicopter", "fixedwing"] as const).map((c) => (
+                <label
+                  key={c}
+                  className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                    newCategory === c
+                      ? "border-sky-500 bg-white font-medium text-sky-700"
+                      : "border-slate-300 bg-white text-slate-600"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="aircraftCategory"
+                    className="text-sky-600 focus:ring-sky-500"
+                    checked={newCategory === c}
+                    onChange={() => setNewCategory(c)}
+                  />
+                  {c === "helicopter" ? "Helicopter" : "Fixed wing"}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
         <div>
           <label className={label}>Pilot in Command</label>
           <input
-            className={field}
+            className={`${field} uppercase`}
             value={pilotInCommand}
             onChange={(e) => setPic(e.target.value)}
             placeholder="SELF"
@@ -264,11 +311,13 @@ export function AddFlightForm({ initial, onSave, onCancel, onDelete, isSim }: Pr
         <div>
           <label className={label}>Other Pilot or Crew</label>
           <input
-            className={field}
+            className={`${field} uppercase`}
             value={otherCrew}
             onChange={(e) => setOther(e.target.value)}
-            autoCapitalize="words"
+            autoCapitalize="characters"
             autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
             enterKeyHint="next"
           />
         </div>

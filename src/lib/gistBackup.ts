@@ -119,6 +119,14 @@ function mergeBundles(a: BackupBundle, b: BackupBundle): BackupBundle {
     ...a,
     flights: mergeArr(a.flights ?? [], b.flights ?? []),
     sim: mergeArr(a.sim ?? [], b.sim ?? []),
+    meta: {
+      ...a.meta,
+      // Union the aircraft-type categories from both devices (local wins ties).
+      aircraftCategories: {
+        ...(b.meta?.aircraftCategories ?? {}),
+        ...(a.meta?.aircraftCategories ?? {}),
+      },
+    },
     exportedAt: new Date().toISOString(),
   };
 }

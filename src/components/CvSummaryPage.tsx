@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { computeCvSummary } from "../lib/summary";
+import type { AircraftCategories } from "../lib/db";
 import type { CvRow, CvSummary, Flight, TotalsSheet } from "../types";
 
 const COLS: { key: keyof Omit<CvRow, "type">; label: string }[] = [
@@ -26,15 +27,17 @@ export function CvSummaryPage({
   totalsBase,
   flights,
   simFlights = [],
+  categories = {},
 }: {
   base: CvSummary;
   totalsBase: TotalsSheet;
   flights: Flight[];
   simFlights?: Flight[];
+  categories?: AircraftCategories;
 }) {
   const cv = useMemo(
-    () => computeCvSummary(base, totalsBase, flights, simFlights),
-    [base, totalsBase, flights, simFlights],
+    () => computeCvSummary(base, totalsBase, flights, simFlights, categories),
+    [base, totalsBase, flights, simFlights, categories],
   );
   const [copied, setCopied] = useState(false);
 

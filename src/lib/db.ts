@@ -70,6 +70,21 @@ export async function putProfile(p: Profile): Promise<void> {
   await db.put("meta", p, "profile");
 }
 
+/** Whether an aircraft type is a helicopter or a fixed-wing aeroplane, which
+ * decides its group on the CV Summary. Keyed by canonical base type. */
+export type AircraftCategory = "helicopter" | "fixedwing";
+export type AircraftCategories = Record<string, AircraftCategory>;
+
+export async function getAircraftCategories(): Promise<AircraftCategories> {
+  const db = await getDb();
+  return ((await db.get("meta", "aircraftCategories")) as AircraftCategories | undefined) ?? {};
+}
+
+export async function putAircraftCategories(map: AircraftCategories): Promise<void> {
+  const db = await getDb();
+  await db.put("meta", map, "aircraftCategories");
+}
+
 export async function ensureSeeded(): Promise<void> {
   const db = await getDb();
   const seeded = await db.get("meta", "seedVersion");
@@ -265,13 +280,14 @@ export interface BackupBundle {
     sourceMeta?: unknown;
     seedVersion?: unknown;
     profile?: Profile;
+    aircraftCategories?: AircraftCategories;
   };
 }
 
 /** Export the entire on-device database to a single JSON bundle. */
 export async function exportData(): Promise<BackupBundle> {
   const db = await getDb();
-  const [flights, sim, openingBalance, adjustments, excelGrandTotal, sourceMeta, seedVersion, profile] =
+  const [flights, sim, openingBalance, adjustments, excelGrandTotal, sourceMeta, seedVersion, profile, aircraftCategories] =
     await Promise.all([
       db.getAll("flights"),
       db.getAll("sim"),
@@ -281,6 +297,7 @@ export async function exportData(): Promise<BackupBundle> {
       db.get("meta", "sourceMeta"),
       db.get("meta", "seedVersion"),
       db.get("meta", "profile") as Promise<Profile | undefined>,
+      db.get("meta", "aircraftCategories") as Promise<AircraftCategories | undefined>,
     ]);
   return {
     app: "pilot-logbook",
@@ -288,7 +305,7 @@ export async function exportData(): Promise<BackupBundle> {
     exportedAt: new Date().toISOString(),
     flights,
     sim,
-    meta: { openingBalance, adjustments, excelGrandTotal, sourceMeta, seedVersion, profile },
+    meta: { openingBalance, adjustments, excelGrandTotal, sourceMeta, seedVersion, profile, aircraftCategories },
   };
 }
 
@@ -314,5 +331,6 @@ export async function importData(bundle: BackupBundle): Promise<void> {
   if (bundle.meta?.sourceMeta !== undefined) await meta.put(bundle.meta.sourceMeta, "sourceMeta");
   if (bundle.meta?.seedVersion !== undefined) await meta.put(bundle.meta.seedVersion, "seedVersion");
   if (bundle.meta?.profile) await meta.put(bundle.meta.profile, "profile");
+  if (bundle.meta?.aircraftCategories) await meta.put(bundle.meta.aircraftCategories, "aircraftCategories");
   await tx.done;
 }

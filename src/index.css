@@ -20,12 +20,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Dense logbook grid cells (all centred). */
+/* Dense logbook grid cells (all centred). The table is fixed-layout, so cells
+   clip rather than widen the column when content is a touch too long. */
 .lb-cell {
-  @apply border border-slate-200 px-1.5 py-1 text-center tabular-nums whitespace-nowrap;
+  @apply overflow-hidden border border-slate-200 px-1 py-1 text-center tabular-nums whitespace-nowrap;
 }
 .lb-cell-l {
-  @apply border border-slate-200 px-2 py-1 text-center whitespace-nowrap;
+  @apply overflow-hidden border border-slate-200 px-2 py-1 text-center whitespace-nowrap;
 }
 .lb-head {
   @apply border border-slate-300 bg-slate-100 px-1.5 py-1 text-center font-semibold text-[11px] uppercase tracking-tight;
@@ -48,7 +49,16 @@ body {
 @media print {
   @page {
     size: A4 landscape;
-    margin: 8mm;
+    /* No page-box margin here; the margin is applied as padding on the printed
+       page content below, so it stays consistent regardless of the browser's
+       print "Margins" setting and the logbook never sits flush to the edge. */
+    margin: 0;
+  }
+
+  /* Small, even margin on every edge of each printed sheet. */
+  .lb-single,
+  .lb-print-all .lb-print-page {
+    padding: 10mm;
   }
 
   html,
@@ -142,7 +152,6 @@ body {
   .lb-cert {
     display: block;
     margin-top: 10pt;
-    padding-left: 10mm;
     font-size: 8pt;
     color: #000;
     page-break-inside: avoid;
